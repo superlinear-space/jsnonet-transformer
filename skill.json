@@ -1,0 +1,34 @@
+{
+	"name": "Grafana Dashboard JSON to Jsonnet Transformer",
+	"version": "1.0.0",
+	"description": "Transform Grafana dashboard JSON files into well-structured Jsonnet programs with extracted templates and variables",
+	"author": "Kilo Code",
+	"license": "MIT",
+	"entry_point": "scripts/main.py",
+	"capabilities": [
+		"parse_json",
+		"analyze_patterns",
+		"generate_jsonnet",
+		"create_templates",
+		"extract_variables"
+	],
+	"requirements": [
+		"python >= 3.8"
+	],
+	"tags": [
+		"grafana",
+		"jsonnet",
+		"transformation",
+		"dashboard",
+		"kubernetes"
+	],
+	"examples": [
+		"Transform a Grafana dashboard JSON to Jsonnet",
+		"Extract repeated values into local variables",
+		"Create reusable panel templates"
+	],
+	"skill_file": "SKILL.md",
+	"scripts_directory": "scripts/",
+	"references_directory": "references/",
+	"assets_directory": "assets/"
+}
