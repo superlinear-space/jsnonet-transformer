@@ -1,6 +1,47 @@
 # Grafana Dashboard JSON to Jsonnet Transformer
 
-A skill that transforms Grafana dashboard JSON files into well-structured Jsonnet programs with extracted templates and variables.
+## Invoke via AI Agent
+
+This tool is designed to be invoked by AI agents. When working with an AI assistant, you can ask it to transform Grafana dashboards using natural language.
+
+### Prompt Examples
+
+Here are examples of how you can invoke this skill in your prompts:
+
+**Basic transformation:**
+> "Transform this Grafana dashboard JSON into Jsonnet. [paste JSON or provide file path]"
+
+**With specific requirements:**
+> "Convert my Grafana dashboard to Jsonnet and extract all repeated colors and thresholds into local variables."
+
+**For template creation:**
+> "Create a maintainable Jsonnet structure from my dashboard, including reusable panel template functions."
+
+**For refactoring existing dashboards:**
+> "Refactor this Grafana dashboard JSON into modular Jsonnet code with proper variable extraction and comments."
+
+**For Kubernetes/Prometheus dashboards:**
+> "Transform this K8s/Prometheus dashboard JSON to Jsonnet using appropriate template patterns."
+
+### What to Provide
+
+When invoking the skill through an agent, provide either:
+
+1. **JSON content directly** - Paste the Grafana dashboard JSON
+2. **File path** - Path to a `.json` file containing the dashboard export
+
+Optionally specify:
+- Whether to extract repeated values (`--extract-repeated`)
+- Whether to create panel templates (`--create-templates`)
+- Whether to add comments (`--add-comments`)
+- Indentation preferences (`--indent-size`)
+
+Example with options:
+> "Transform `/path/to/dashboard.json` to Jsonnet, extract repeated values, create templates, use 2-space indentation."
+
+---
+
+A tool that transforms Grafana dashboard JSON files into well-structured Jsonnet programs with extracted templates and variables.
 
 ## Features
 
@@ -9,6 +50,7 @@ A skill that transforms Grafana dashboard JSON files into well-structured Jsonne
 - **Generate Jsonnet** - Create clean, maintainable Jsonnet code
 - **Extract variables** - Pull out repeated values into local variables
 - **Create templates** - Generate reusable panel template functions
+- **Built-in templates** - Create dashboards from kubernetes, prometheus, or empty templates
 - **Support multiple panel types** - graph, timeseries, stat, gauge, table, piechart, barchart, heatmap, logs, text
 
 ## Installation
@@ -28,17 +70,24 @@ pip install -e .
 
 ```bash
 # Transform a JSON file to Jsonnet
-python -m src.main --input examples/input/sample_dashboard.json --output output.jsonnet
+python -m scripts --input assets/examples/input/sample_dashboard.json --output output.jsonnet
+
+# Transform a JSON string directly
+python -m scripts --string '{"dashboard": {"title": "My Dashboard", "panels": []}}'
 
 # Transform with options
-python -m src.main --input dashboard.json --output dashboard.jsonnet \
-    --no-comments --extract-repeated --create-templates
+python -m scripts --input dashboard.json --output dashboard.jsonnet \
+    --no-comments --no-extract-repeated --no-templates
+
+# Customize formatting
+python -m scripts --input dashboard.json --output dashboard.jsonnet \
+    --indent-size 2 --max-line-length 80
 ```
 
 ### Python API
 
 ```python
-from src import transform, transform_string, TransformOptions
+from scripts import transform, transform_string, TransformOptions
 
 # Transform a file
 result = transform('dashboard.json')
@@ -54,9 +103,34 @@ options = TransformOptions(
     extract_repeated=True,
     create_templates=True,
     add_comments=True,
+    indent_size=4,
     output_file='output.jsonnet'
 )
 result = transform('dashboard.json', options)
+```
+
+## Built-in Templates
+
+Create dashboards from pre-defined templates:
+
+```python
+from scripts.main import create_dashboard_from_template
+
+# Create a Kubernetes dashboard
+k8s_dashboard = create_dashboard_from_template('kubernetes', {
+    'cluster_name': 'production',
+    'namespace': 'monitoring'
+})
+
+# Create a Prometheus dashboard
+prom_dashboard = create_dashboard_from_template('prometheus', {
+    'job_name': 'myservice'
+})
+
+# Create an empty dashboard
+empty_dashboard = create_dashboard_from_template('empty', {
+    'title': 'My New Dashboard'
+})
 ```
 
 ## Transformation Examples
@@ -140,49 +214,74 @@ local timeseriesPanel(title, gridPos, targets, datasource) = {
 | `output_file` | `str` | `None` | Output file path |
 | `overwrite` | `bool` | `False` | Overwrite output file |
 
+### Command Line Options
+
+| Option | Description |
+|--------|-------------|
+| `--input`, `-i` | Path to input JSON file |
+| `--output`, `-o` | Path to output Jsonnet file |
+| `--string`, `-s` | JSON string to transform (alternative to --input) |
+| `--no-comments` | Don't add comments to output |
+| `--no-extract-repeated` | Don't extract repeated values |
+| `--no-templates` | Don't create panel templates |
+| `--indent-size` | Spaces per indent level (default: 4) |
+| `--max-line-length` | Maximum line length (default: 120) |
+
 ## Project Structure
 
 ```
 jsonnet-transformer/
 ├── skill.json                 # Skill configuration
-├── src/
+├── SKILL.md                   # Skill documentation
+├── README.md                  # This file
+├── scripts/
 │   ├── __init__.py            # Package init
+│   ├── __main__.py            # CLI entry point
 │   ├── main.py                # Main transformation pipeline
 │   ├── parser.py              # JSON parsing
 │   ├── analyzer.py            # Dashboard analysis
 │   ├── patterns.py            # Pattern detection
 │   ├── generator.py           # Jsonnet code generation
-│   └── templates/
+│   ├── package_skill.py       # Skill packaging script
+│   ├── templates/
+│   │   ├── __init__.py
+│   │   ├── panels.py          # Panel template functions
+│   │   └── mixins.py          # Configuration mixins
+│   └── tests/
 │       ├── __init__.py
-│       ├── panels.py          # Panel template functions
-│       └── mixins.py          # Configuration mixins
-├── tests/
-│   ├── __init__.py
-│   ├── test_parser.py
-│   ├── test_analyzer.py
-│   ├── test_generator.py
-│   └── test_integration.py
-├── examples/
-│   ├── input/
-│   │   └── sample_dashboard.json
-│   └── output/
-│       └── sample_dashboard.jsonnet
-└── docs/
-    ├── README.md
-    └── API.md
+│       ├── test_parser.py
+│       ├── test_analyzer.py
+│       ├── test_generator.py
+│       └── test_integration.py
+├── references/
+│   ├── API.md                 # Complete API documentation
+│   ├── grafana-schema.md      # Grafana dashboard schema
+│   ├── jsonnet-guide.md       # Jsonnet syntax guide
+│   └── transformation-rules.md # Transformation rules
+├── assets/
+│   ├── examples/
+│   │   ├── input/
+│   │   │   └── sample_dashboard.json
+│   │   └── output/
+│   │       └── sample_dashboard.jsonnet
+│   └── templates/
+│       ├── empty.jsonnet
+│       ├── kubernetes.jsonnet
+│       └── prometheus.jsonnet
+└── LICENSE
 ```
 
 ## Running Tests
 
 ```bash
 # Run all tests
-pytest
+python -m pytest scripts/tests/
 
 # Run with coverage
-pytest --cov=src
+python -m pytest scripts/tests/ --cov=scripts
 
 # Run specific test file
-pytest tests/test_parser.py
+python -m pytest scripts/tests/test_parser.py
 ```
 
 ## Supported Panel Types
@@ -197,6 +296,21 @@ pytest tests/test_parser.py
 - `heatmap` - Heatmap visualization
 - `logs` - Log viewer
 - `text` - Text panel
+
+## Packaging the Skill
+
+To create a distributable package:
+
+```bash
+# Validate the skill structure
+python scripts/package_skill.py --validate-only
+
+# Package the skill
+python scripts/package_skill.py
+
+# Package with custom name
+python scripts/package_skill.py --name my-skill
+```
 
 ## Contributing
 
